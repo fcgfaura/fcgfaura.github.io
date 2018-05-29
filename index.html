@@ -1,1 +1,177 @@
-Hello World
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <title>Marker Labels</title>
+    <style>
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 100%;
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDF1DFD8TfgzOQAZY1OdnTYKMzdooHBlPQ"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.js"></script>
+    <script>
+      var socket = io('wss://integracion-tarea-3.herokuapp.com', {'path': '/flights'});
+
+      function initialize() {
+        //var bangalore = { lat: -34.40787485472222, lng: -62.06772867611111 };
+        var map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 5,
+          center: { lat: -34.40787485472222, lng: -62.06772867611111 }
+        });
+
+        socket.emit('AIRPORTS', {});
+        socket.on('AIRPORTS', function(msg){
+          //console.log(msg);
+          var keys = Object.keys(msg);
+          for(var i = 0; i < keys.length;i++){
+            code = keys[i];
+            value = msg[keys[i]];
+            // console.log(code);
+            // console.log(value);
+            position = {lat: value.airport_position[0], lng: value.airport_position[1]};
+            var contentString = '<div id="content">'+
+            '<div id="siteNotice">'+
+            '</div>'+
+            '<h1 id="firstHeading" class="firstHeading">'+value.name+'</h1>'+
+            '<div id="bodyContent">'+
+            '<p>Ciudad: '+value.city+'</p>'+
+            '<p>País: '+value.country+'</p>'+
+            '<p>Latitud: '+value.airport_position[0]+'</p>'+
+            '<p>Longitud: '+value.airport_position[1]+'</p>'+
+            '</div>'+
+            '</div>';
+            addAirport(position, map, value.name, contentString);
+          };
+        });
+
+        socket.on('POSITION', function(msg){
+          console.log(msg.code+' :('+msg.position[0]+','+msg.position[1]+')');
+          position = {lat: msg.position[0], lng: msg.position[1]};
+          addMarker(position, map, msg.code);
+        });
+
+      }
+
+      function showFlight(flight){
+        socket.emit('FLIGHTS', {})
+        socket.on('FLIGHTS', function(msg){
+          //console.log(msg);
+          for (var i = 0; i <= msg.length - 1; i++) {
+            if (msg[i].code == flight) {
+              //console.log(msg[i].code);
+
+              var contentString = '<div id="content">'+
+                  '<div id="siteNotice">'+
+                  '</div>'+
+                  '<h1 id="firstHeading" class="firstHeading">'+value.name+'</h1>'+
+                  '<div id="bodyContent">'+
+                  '<p>Avión: '+msg[i].plane+'</p>'+
+                  '<p>Aerolínea: '+msg[i].airline+'</p>'+
+                  '<p>Origen: '+msg[i].origin.name+', '+msg[i].origin.city+', '+msg[i].origin.country+'</p>'+
+                  '<p>Destino: '+msg[i].destination.name+', '+msg[i].destination.city+', '+msg[i].destination.country+'</p>'+
+                  '<p>Asientos: '+msg[i].seats+'</p>'+
+                  '</div>'+
+                  '</div>';
+                console.log(contentString);
+              var infowindow = new google.maps.InfoWindow({
+                content: contentString,
+                position: { lat: -34.40787485472222, lng: -62.06772867611111 }
+              });
+
+              infowindow.open(map);
+            };
+          };
+        });
+      }
+
+      // Adds a maairrker to the map.
+      function addAirport(location, map, name, contentString) {
+        // Add the marker at the clicked location, and add the next-available label
+        // from the array of alphabetical characters.
+        var image = {
+          url: 'https://developers.google.com/maps/documentation/javascript/examples/full/images/beachflag.png',
+          // This marker is 20 pixels wide by 32 pixels high.
+          size: new google.maps.Size(20, 32),
+          // The origin for this image is (0, 0).
+          origin: new google.maps.Point(0, 0),
+          // The anchor for this image is the base of the flagpole at (0, 32).
+          anchor: new google.maps.Point(0, 32)
+        };
+        var infowindow = new google.maps.InfoWindow({
+          content: contentString
+        });
+        var marker = new google.maps.Marker({
+          position: location,
+          icon: image,
+          map: map,
+          title: name
+        });
+        marker.addListener('click', function() {
+          infowindow.open(map, marker);
+        });
+      }
+
+      function addMarker(location, map, code) {
+        // Add the marker at the clicked location, and add the next-available label
+        // from the array of alphabetical characters.
+        // var infowindow = new google.maps.InfoWindow({
+        //   content: code
+        // });
+
+        var marker = new google.maps.Marker({
+          position: location,
+          map: map
+        });
+
+        marker.addListener('click', function() {
+          showFlight(code, map);
+          //infowindow.open(map, marker);
+        });
+      }
+
+      google.maps.event.addDomListener(window, 'load', initialize);
+    </script>
+  </head>
+  <body>
+    <div id="map"></div>
+  </body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.js"></script>
+  <script>
+    // var socket = io('wss://integracion-tarea-3.herokuapp.com', {'path': '/flights'});
+
+    // socket.on('POSITION', function(msg){
+    //   console.log(msg.code+' :('+msg.position[0]+','+msg.position[1]+')');
+    // });
+    // Add a marker at the center of the map.
+    //var bangalore = { lat: -34.40787485472222, lng: -62.06772867611111 };
+    //addMarker(bangalore, map);
+
+      // socket.emit('AIRPORTS', {})
+      // socket.on('AIRPORTS', function(){
+      //   console.log(msg);
+      // });
+
+      // socket.emit('FLIGHTS', {})
+      // socket.on('FLIGHTS', function(){
+      //   console.log(msg);
+      // });
+
+  </script>
+</html>
+
+
+
+
+
+
+
