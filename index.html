@@ -21,6 +21,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.js"></script>
     <script>
       var socket = io('wss://integracion-tarea-3.herokuapp.com', {'path': '/flights'});
+      var vuelos = {}
+      var positions = {}
 
       function initialize() {
         //var bangalore = { lat: -34.40787485472222, lng: -62.06772867611111 };
@@ -54,44 +56,59 @@
           };
         });
 
-        socket.on('POSITION', function(msg){
-          console.log(msg.code+' :('+msg.position[0]+','+msg.position[1]+')');
-          position = {lat: msg.position[0], lng: msg.position[1]};
-          addMarker(position, map, msg.code);
-        });
-
-      }
-
-      function showFlight(flight){
-        socket.emit('FLIGHTS', {})
+        socket.emit('FLIGHTS', {});
         socket.on('FLIGHTS', function(msg){
-          //console.log(msg);
-          for (var i = 0; i <= msg.length - 1; i++) {
-            if (msg[i].code == flight) {
-              //console.log(msg[i].code);
-
-              var contentString = '<div id="content">'+
+          for (object in msg) {
+            origen = {lat: msg[object].origin.airport_position[0], lng: msg[object].origin.airport_position[1]}
+            destino = {lat: msg[object].destination.airport_position[0], lng: msg[object].destination.airport_position[1]}
+            var flightPlanCoordinates = [origen, destino]
+            //console.log(flightPlanCoordinates);
+            var flightPath = new google.maps.Polyline({
+              path: flightPlanCoordinates,
+              geodesic: true,
+            });
+            flightPath.setMap(map);
+            var contentString = '<div id="content">'+
                   '<div id="siteNotice">'+
                   '</div>'+
-                  '<h1 id="firstHeading" class="firstHeading">'+value.name+'</h1>'+
                   '<div id="bodyContent">'+
-                  '<p>Avión: '+msg[i].plane+'</p>'+
-                  '<p>Aerolínea: '+msg[i].airline+'</p>'+
-                  '<p>Origen: '+msg[i].origin.name+', '+msg[i].origin.city+', '+msg[i].origin.country+'</p>'+
-                  '<p>Destino: '+msg[i].destination.name+', '+msg[i].destination.city+', '+msg[i].destination.country+'</p>'+
-                  '<p>Asientos: '+msg[i].seats+'</p>'+
+                  '<p>Avión: '+msg[object].plane+'</p>'+
+                  '<p>Aerolínea: '+msg[object].airline+'</p>'+
+                  '<p>Origen: '+msg[object].origin.name+', '+msg[object].origin.city+', '+msg[object].origin.country+'</p>'+
+                  '<p>Destino: '+msg[object].destination.name+', '+msg[object].destination.city+', '+msg[object].destination.country+'</p>'+
+                  '<p>Asientos: '+msg[object].seats+'</p>'+
                   '</div>'+
                   '</div>';
-                console.log(contentString);
-              var infowindow = new google.maps.InfoWindow({
-                content: contentString,
-                position: { lat: -34.40787485472222, lng: -62.06772867611111 }
-              });
-
-              infowindow.open(map);
-            };
-          };
+            addPlane(map, msg[object].code, contentString);
+          }
         });
+
+
+        socket.on('POSITION', function(msg){
+          pos = {lat: msg.position[0], lng: msg.position[1]};
+          vuelos[msg.code].setPosition(pos)
+          if (positions[msg.code] == undefined){
+            positions[msg.code] = []
+          }
+          else {
+            positions[msg.code].push(pos)
+          }
+
+          var flightPath = new google.maps.Polyline({
+            path: positions[msg.code],
+            geodesic: true,
+            strokeColor: '#FF3FED',
+            strokeOpacity: 1.0,
+            strokeWeight: 3
+          });
+          flightPath.setMap(window.googleMap);
+          var marker = new google.maps.Marker({
+            position: pos,
+            icon: './dot.png',
+            map: map
+          });
+        });
+
       }
 
       // Adds a maairrker to the map.
@@ -121,22 +138,27 @@
         });
       }
 
-      function addMarker(location, map, code) {
+      function addPlane(map, code, contentString) {
         // Add the marker at the clicked location, and add the next-available label
         // from the array of alphabetical characters.
-        // var infowindow = new google.maps.InfoWindow({
-        //   content: code
-        // });
+        var infowindow = new google.maps.InfoWindow({
+          content: contentString
+        });
 
+        var location = { lat: -34.40787485472222, lng: -62.06772867611111 };
+        
         var marker = new google.maps.Marker({
           position: location,
-          map: map
+          map: map,
+          label: code
         });
 
         marker.addListener('click', function() {
-          showFlight(code, map);
-          //infowindow.open(map, marker);
+          infowindow.open(map, marker);
         });
+
+        vuelos[code] = marker
+        console.log(vuelos);
       }
 
       google.maps.event.addDomListener(window, 'load', initialize);
@@ -145,28 +167,7 @@
   <body>
     <div id="map"></div>
   </body>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.js"></script>
-  <script>
-    // var socket = io('wss://integracion-tarea-3.herokuapp.com', {'path': '/flights'});
 
-    // socket.on('POSITION', function(msg){
-    //   console.log(msg.code+' :('+msg.position[0]+','+msg.position[1]+')');
-    // });
-    // Add a marker at the center of the map.
-    //var bangalore = { lat: -34.40787485472222, lng: -62.06772867611111 };
-    //addMarker(bangalore, map);
-
-      // socket.emit('AIRPORTS', {})
-      // socket.on('AIRPORTS', function(){
-      //   console.log(msg);
-      // });
-
-      // socket.emit('FLIGHTS', {})
-      // socket.on('FLIGHTS', function(){
-      //   console.log(msg);
-      // });
-
-  </script>
 </html>
 
 
