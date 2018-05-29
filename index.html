@@ -22,10 +22,8 @@
     <script>
       var socket = io('wss://integracion-tarea-3.herokuapp.com', {'path': '/flights'});
       var vuelos = {}
-      var positions = {}
 
       function initialize() {
-        //var bangalore = { lat: -34.40787485472222, lng: -62.06772867611111 };
         var map = new google.maps.Map(document.getElementById('map'), {
           zoom: 5,
           center: { lat: -34.40787485472222, lng: -62.06772867611111 }
@@ -38,8 +36,6 @@
           for(var i = 0; i < keys.length;i++){
             code = keys[i];
             value = msg[keys[i]];
-            // console.log(code);
-            // console.log(value);
             position = {lat: value.airport_position[0], lng: value.airport_position[1]};
             var contentString = '<div id="content">'+
             '<div id="siteNotice">'+
@@ -62,7 +58,6 @@
             origen = {lat: msg[object].origin.airport_position[0], lng: msg[object].origin.airport_position[1]}
             destino = {lat: msg[object].destination.airport_position[0], lng: msg[object].destination.airport_position[1]}
             var flightPlanCoordinates = [origen, destino]
-            //console.log(flightPlanCoordinates);
             var flightPath = new google.maps.Polyline({
               path: flightPlanCoordinates,
               geodesic: true,
@@ -87,28 +82,13 @@
         socket.on('POSITION', function(msg){
           pos = {lat: msg.position[0], lng: msg.position[1]};
           vuelos[msg.code].setPosition(pos)
-          if (positions[msg.code] == undefined){
-            positions[msg.code] = []
-          }
-          else {
-            positions[msg.code].push(pos)
-          }
 
-          var flightPath = new google.maps.Polyline({
-            path: positions[msg.code],
-            geodesic: true,
-            strokeColor: '#FF3FED',
-            strokeOpacity: 1.0,
-            strokeWeight: 3
-          });
-          flightPath.setMap(window.googleMap);
           var marker = new google.maps.Marker({
             position: pos,
             icon: './dot.png',
             map: map
           });
         });
-
       }
 
       // Adds a maairrker to the map.
@@ -158,7 +138,6 @@
         });
 
         vuelos[code] = marker
-        console.log(vuelos);
       }
 
       google.maps.event.addDomListener(window, 'load', initialize);
